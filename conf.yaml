@@ -1,4 +1,17 @@
-no_cities: 3
-cities: "New_York San_Francisco Chicago"
-state1: "NY CA IL"
+---
 
+Cities:
+  - city: New_York
+    state: NY
+  - city: San_Francisco
+    state: CA
+  - city: Chicago
+    state: IL
+  - city: Los_Angeles
+    state: CA
+  - city: Paris
+    state: France
+  - city: Berlin
+    state: Germany
+  - city: Perth
+    state: Australia 

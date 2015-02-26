@@ -2,107 +2,79 @@
 require 'sinatra/base'
 require 'json'
 require 'httparty'
-require 'data_mapper'
-#require 'sinatra/config_file'
-
-# This is way to pass secret arguments to program 
-# or as environment variable
-API_KEY = ENV['WEATHER']
-
-# If you want the logs displayed you have to do this before the call to set
-DataMapper::Logger.new($stdout, :debug)
-
-# A Postgres connection
-DataMapper.setup(:default, ENV['DATABASE_URL'] || 'postgres://localhost/mydb')
-
-class WeatherData
-  include DataMapper::Resource
-
-  property :id, Integer, :key => true
-  property :city, Text
-  property :state, Text
-  property :temperature, Integer
-  property :humidity, Text
-  property :icon, Text
-  property :updated_at, DateTime
-end
-
-DataMapper.finalize.auto_upgrade!
+require 'date'
+require 'yaml'
 
 
 class App < Sinatra::Base
 
+  configure do
+    data = YAML.load_file('.secret_config.yaml')
+    API_KEY = data['WEATHER_KEY']
 
-  def self.initialize_database
-    cities = ["New_York", "San_Francisco", "Chicago"]
-    states = ["NY", "CA", "IL"]
+    data = YAML.load_file('conf.yaml')
+    @@cities = data["Cities"] 
+    
+    @@latest_query = DateTime.new(0)
+    QUERY = "http://api.wunderground.com/api/"
+  end
 
-    3.times do |i|
-      c = WeatherData.new
-      c.id = i
-      c.city = cities[i].tr('_', ' ')
-      c.state = states[i].tr('_', ' ')
-      self.make_api_call(c, states[i], cities[i])
+  # don't want this, update if data stale
+  before do
+    right_now = DateTime.now
+    if @@latest_query.strftime("%Y%m%d") != right_now.strftime("%Y%m%d") or 
+       right_now.strftime("%H%M") - @@latest_query.strftime("%H%M").to_i > 15   # update every 15 minutes
+      @@current_observation = update_conditions
+      @@latest_query = DateTime.now
     end
-
   end
 
 
-  def self.make_api_call(db_record, state, city)
-    query = "http://api.wunderground.com/api/"+API_KEY+"/conditions/q/#{state}/#{city}.json"
+  def make_api_call(state, city)
+    query = QUERY + API_KEY + "/conditions/q/#{state}/#{city}.json"
     res = HTTParty.get(query)
     parsed = JSON.parse(res.body)
     data = parsed['current_observation']
-    db_record.humidity = data['relative_humidity']
-    db_record.temperature = data['temp_f']
-    db_record.icon = data['icon']
-    db_record.updated_at = Time.now
-    db_record.save
+    response = {}
+    response['city'] = city
+    response['temp_c'] = data['temp_c']
+    response['temp_f'] = data['temp_f']
+    response['weather'] = data['weather']
+    response['relative_humidity'] = data['relative_humidity']
+    response['wind_string'] = data['wind_string']
+    response
   end
 
 
-  # make sure we have something in the database
-  configure do
-    #config_file 'conf.yaml'
-    data = WeatherData.all
-    self.initialize_database if data.size == 0
-  end
+  
+
 
   get '/' do
-    @conditions = WeatherData.all :order => :id.desc
-    update @conditions if update? @conditions
-
+    puts "Latest update was at #{@@latest_query}"
+    @@current_observation.each do |o| 
+      puts "Here are observations for #{o['city']}:"
+      puts "Temperature: #{o['temp_c']} C #{o['temp_f']} F"
+      puts "Humidity: #{o['relative_humidity']}"
+      puts "Wind: #{o['wind_string']}"
+    end
     erb :home
   end
 
   helpers do
-    def update cities
-      cities.each do |city|
-        update_db(city, city.state, city.city.tr(' ', '_'))
+    
+    def update_conditions
+       result = []
+       @@cities.each do |c|
+        result << make_api_call(c['state'], c['city'])
       end
+      result
     end
   
     def update? cities
       now = Time.now
-      latest = 0
-      cities.each do |city|
-        latest = latest > now - city.updated_at.to_time ? latest : now - city.updated_at.to_time
-      end
       
-      latest > 300
     end
 
-    def update_db(db_record, state, city)
-      query = "http://api.wunderground.com/api/"+API_KEY+"/conditions/q/#{state}/#{city}.json"
-      res = HTTParty.get(query)
-      parsed = JSON.parse(res.body)
-      data = parsed['current_observation']
-      db_record.humidity = data['relative_humidity']
-      db_record.temperature = data['temp_f']
-      db_record.icon = data['icon']
-      db_record.updated_at = Time.now
-      db_record.save
-    end
   end
 
 end
