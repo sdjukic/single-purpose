@@ -7,7 +7,7 @@
         Temperature : <%= condition.temperature %><br />
         Humidity :<%= condition.humidity %><br />
       </p>
-      <p> <img src='<%= File.expand_path("/images/#{condition.city}.jpeg", settings.public_folder) %>' class="city" /> </p> 
+      <p> <img src='<%= File.expand_path("/images/#{condition.city}.jpeg", settings.public_folder) %>' class="cityImage" /> </p> 
     </div>
   <% end %>
 

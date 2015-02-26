@@ -1,16 +1,16 @@
 # Single-Purpose Site
 
-Create a single-purpose website using [Sinatra](http://www.sinatrarb.com/) that tells the user one thing, a la [isitchristmas.com](https://isitchristmas.com/). Surprise and delight us – creativity is encouraged. Example inputs:
+## Created by Slavisa Djukic 
+<Slavisa.Djukic15@myhunter.cuny.edu>
 
-* The current date
-* The time
-* The weather
-* Whether Kanye West's most recent tweets mention Kanye West
-* *etc*
+### About the app
 
-**Deploy the application to Heroku**, and **submit a pull request** to this repository. Include:
+This app will display current weather conditions for three US cities (Chicago, New York and San Francisco).
 
-* All the necessary files
-* In the README:
-    * Setup instructions
-    * A link to the live app on Heroku
+The data is requested from weather.com via their API calls. Since number of calls is limited app itself is controling API calls. Current data is held in the database and if the current data is older than five minutes on new server request API call is issued and data is refreshed and timestamped.
+
+For the future I thought expanding the number of cities offered and then give user a choice which three it wants to display. That would be nice exercize in JavaScript functionality.
+
+The app's URL is: http://secure-fortress-3874.herokuapp.com/
+
+
